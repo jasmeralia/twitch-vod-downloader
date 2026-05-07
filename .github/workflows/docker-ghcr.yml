@@ -1,16 +1,87 @@
 name: Build and Publish Docker image to GHCR
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 on:
   push:
     branches: [master]
     tags: ["v*"]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Ruff check
+        run: ruff check twitch_vod_downloader.py
+
+      - name: Mypy
+        run: mypy twitch_vod_downloader.py
+
+  prepare-tag:
+    needs: lint
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.resolve.outputs.tag_name || steps.bump.outputs.new_tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve existing tag
+        id: resolve
+        if: startsWith(github.ref, 'refs/tags/')
+        run: echo "tag_name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Bump patch tag
+        id: bump
+        if: github.ref == 'refs/heads/master'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            git fetch --tags --force origin
+            latest=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)
+            latest="${latest:-v0.0.0}"
+            version="${latest#v}"
+            IFS=. read -r major minor patch <<< "${version}"
+            new_tag="v${major}.${minor}.$((patch + 1))"
+            echo "Attempt ${attempt}: tagging ${new_tag} (previous: ${latest})"
+            if git tag -a "${new_tag}" -m "Release ${new_tag}" && git push origin "refs/tags/${new_tag}"; then
+              echo "new_tag=${new_tag}" >> "$GITHUB_OUTPUT"
+              break
+            fi
+            echo "Push failed (tag may already exist); retrying after refetch"
+            git tag -d "${new_tag}" 2>/dev/null || true
+            if [[ "${attempt}" -eq 3 ]]; then
+              echo "Failed to push a unique tag after 3 attempts"
+              exit 1
+            fi
+          done
+
   build-and-push:
+    needs: [lint, prepare-tag]
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -35,4 +106,6 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/${{ github.repository }}:latest
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ needs.prepare-tag.outputs.tag_name }}
