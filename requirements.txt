@@ -1,1 +1,3 @@
 yt-dlp
+
+pydantic-settings>=2.0
