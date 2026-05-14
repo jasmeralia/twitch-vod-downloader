@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import os
 import time
 import subprocess
 import datetime
@@ -9,21 +8,25 @@ import smtplib
 import ssl
 import traceback
 
+from settings import settings
+
+BASE_DIR = pathlib.Path(settings.data_dir).resolve()
+DATA_PATH_PREFIX = "/data"
+VOD_REAL_PATH = settings.vod_real_path
+
+
 def log(msg: str) -> None:
     now = datetime.datetime.now().isoformat(timespec="seconds")
     print(f"[{now}] {msg}", flush=True)
 
+
 def get_channels():
-    raw = os.getenv("CHANNELS", "")
-    channels = [c.strip() for c in raw.split(",") if c.strip()]
+    channels = settings.channel_list()
     if not channels:
         log("ERROR: No CHANNELS specified; set CHANNELS env var (comma-separated).")
         sys.exit(1)
     return channels
 
-BASE_DIR = pathlib.Path(os.getenv("DATA_DIR", "/data")).resolve()
-DATA_PATH_PREFIX = "/data"
-VOD_REAL_PATH = os.getenv("VOD_REAL_PATH")
 
 def ensure_base_dir():
     try:
@@ -33,6 +36,7 @@ def ensure_base_dir():
         log(f"ERROR: Failed to create base directory {BASE_DIR}: {e}")
         sys.exit(1)
 
+
 def seconds_to_next_run(hour: int = 3, minute: int = 0) -> int:
     now = datetime.datetime.now()
     run = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
@@ -41,13 +45,14 @@ def seconds_to_next_run(hour: int = 3, minute: int = 0) -> int:
     delta = run - now
     return int(delta.total_seconds())
 
+
 def send_email(subject: str, body: str) -> None:
-    host = os.getenv("SMTP_HOST")
-    port = int(os.getenv("SMTP_PORT", "587"))
-    username = os.getenv("SMTP_USERNAME")
-    password = os.getenv("SMTP_PASSWORD")
-    from_addr = os.getenv("SMTP_FROM") or username
-    to_addr = os.getenv("SMTP_TO") or username
+    host = settings.smtp_host
+    port = settings.smtp_port
+    username = settings.smtp_username
+    password = settings.smtp_password
+    from_addr = settings.smtp_from or username
+    to_addr = settings.smtp_to or username
 
     if not (host and port and username and password and from_addr and to_addr):
         log("EMAIL: SMTP not fully configured; skipping email notification.")
@@ -65,6 +70,7 @@ def send_email(subject: str, body: str) -> None:
     except Exception as e:
         log(f"ERROR: Failed to send email: {e}")
 
+
 def read_archive_lines(path: pathlib.Path):
     if not path.exists():
         return set()
@@ -75,11 +81,13 @@ def read_archive_lines(path: pathlib.Path):
         log(f"WARNING: Failed to read archive {path}: {e}")
         return set()
 
+
 def parse_vod_id(entry: str) -> str:
     parts = entry.split()
     if len(parts) == 2:
         return parts[1]
     return entry
+
 
 def find_vod_files(ch_dir: pathlib.Path, vod_id: str):
     if not ch_dir.exists():
@@ -90,11 +98,13 @@ def find_vod_files(ch_dir: pathlib.Path, vod_id: str):
             matches.append(path.resolve())
     return sorted(matches)
 
+
 def display_path(path: pathlib.Path) -> str:
     raw = str(path.resolve())
     if VOD_REAL_PATH and raw.startswith(DATA_PATH_PREFIX):
         raw = f"{VOD_REAL_PATH.rstrip('/')}{raw[len(DATA_PATH_PREFIX):]}"
     return raw
+
 
 def run_once(channels):
     log("Starting VOD sync run...")
@@ -166,6 +176,7 @@ def run_once(channels):
     log("VOD sync run complete.")
     return new_downloads
 
+
 def main():
     channels = get_channels()
     ensure_base_dir()
@@ -179,6 +190,7 @@ def main():
         time.sleep(sleep_for)
         log("Starting scheduled daily sync...")
         run_once(channels)
+
 
 if __name__ == "__main__":
     main()
