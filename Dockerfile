@@ -4,4 +4,5 @@ WORKDIR /app
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY twitch_vod_downloader.py /app/twitch_vod_downloader.py
+COPY settings.py /app/settings.py
 CMD ["python", "/app/twitch_vod_downloader.py"]
