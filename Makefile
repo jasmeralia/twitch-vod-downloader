@@ -1,7 +1,7 @@
 PYTHON ?= .venv/bin/python
 PIP ?= $(PYTHON) -m pip
 
-.PHONY: venv install lint-fix lint clean
+.PHONY: venv install lintfix lint clean
 
 venv:
 	python3 -m venv .venv
@@ -10,7 +10,7 @@ install: venv
 	$(PIP) install --upgrade pip
 	$(PIP) install -r requirements-dev.txt
 
-lint-fix: install
+lintfix: install
 	$(PYTHON) -m ruff check --fix twitch_vod_downloader.py settings.py
 	$(PYTHON) -m ruff format twitch_vod_downloader.py settings.py
 
