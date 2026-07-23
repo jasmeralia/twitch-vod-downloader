@@ -1,4 +1,4 @@
 yt-dlp
 ruff
 mypy
-pydantic-settings>=2.0
+pydantic-settings>=2.14.2
