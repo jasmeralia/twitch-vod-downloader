@@ -1,11 +1,10 @@
-#!/usr/bin/env python3
-import time
-import subprocess
 import datetime
 import pathlib
-import sys
 import smtplib
 import ssl
+import subprocess
+import sys
+import time
 import traceback
 
 from settings import settings
@@ -16,7 +15,7 @@ VOD_REAL_PATH = settings.vod_real_path
 
 
 def log(msg: str) -> None:
-    now = datetime.datetime.now().isoformat(timespec="seconds")
+    now = datetime.datetime.now().astimezone().isoformat(timespec="seconds")
     print(f"[{now}] {msg}", flush=True)
 
 
@@ -32,13 +31,13 @@ def ensure_base_dir():
     try:
         BASE_DIR.mkdir(parents=True, exist_ok=True)
         log(f"Using base data directory: {BASE_DIR}")
-    except Exception as e:
+    except OSError as e:
         log(f"ERROR: Failed to create base directory {BASE_DIR}: {e}")
         sys.exit(1)
 
 
 def seconds_to_next_run(hour: int = 3, minute: int = 0) -> int:
-    now = datetime.datetime.now()
+    now = datetime.datetime.now().astimezone()
     run = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
     if run <= now:
         run += datetime.timedelta(days=1)
@@ -67,7 +66,7 @@ def send_email(subject: str, body: str) -> None:
             server.login(username, password)
             server.sendmail(from_addr, [to_addr], msg.encode("utf-8"))
         log(f"Email notification sent to {to_addr}.")
-    except Exception as e:
+    except (OSError, smtplib.SMTPException) as e:
         log(f"ERROR: Failed to send email: {e}")
 
 
@@ -77,7 +76,7 @@ def read_archive_lines(path: pathlib.Path):
     try:
         with path.open("r", encoding="utf-8") as f:
             return {line.strip() for line in f if line.strip()}
-    except Exception as e:
+    except (OSError, UnicodeDecodeError) as e:
         log(f"WARNING: Failed to read archive {path}: {e}")
         return set()
 
@@ -133,7 +132,7 @@ def run_once(channels):
             result = subprocess.run(cmd, check=False)
             if result.returncode != 0:
                 log(f"WARNING: yt-dlp exited with code {result.returncode} for channel '{ch}'.")
-        except Exception as e:
+        except OSError as e:
             log(f"ERROR running yt-dlp for '{ch}': {e}")
             log(traceback.format_exc())
 
