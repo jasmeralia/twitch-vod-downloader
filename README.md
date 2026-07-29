@@ -1,4 +1,4 @@
-# twitch_vod_downloader
+# Twitch VOD Downloader
 
 Automatically downloads Twitch VODs for one or more creators on a daily schedule, stores them in separate directories (great for Plex), and optionally sends an email when new VODs are detected.
 
@@ -128,7 +128,7 @@ cp .env.example .env
 ```yaml
 services:
   app:
-    image: ghcr.io/jasmeralia/twitch_vod_downloader:latest
+    image: ghcr.io/jasmeralia/twitch-vod-downloader:latest
     volumes:
       - /path/to/your/.env:/app/.env:ro
 ```

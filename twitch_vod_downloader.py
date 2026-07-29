@@ -101,7 +101,7 @@ def find_vod_files(ch_dir: pathlib.Path, vod_id: str):
 def display_path(path: pathlib.Path) -> str:
     raw = str(path.resolve())
     if VOD_REAL_PATH and raw.startswith(DATA_PATH_PREFIX):
-        raw = f"{VOD_REAL_PATH.rstrip('/')}{raw[len(DATA_PATH_PREFIX):]}"
+        raw = f"{VOD_REAL_PATH.rstrip('/')}{raw[len(DATA_PATH_PREFIX) :]}"
     return raw
 
 
@@ -119,19 +119,26 @@ def run_once(channels):
         before = read_archive_lines(archive)
 
         cmd = [
-            "yt-dlp", url,
-            "--download-archive", str(archive),
-            "--paths", str(ch_dir),
-            "--output", "%(upload_date>%Y-%m-%d)s_%(id)s_%(title)s.%(ext)s",
+            "yt-dlp",
+            url,
+            "--download-archive",
+            str(archive),
+            "--paths",
+            str(ch_dir),
+            "--output",
+            "%(upload_date>%Y-%m-%d)s_%(id)s_%(title)s.%(ext)s",
             "--restrict-filenames",
-            "--retries", "10",
+            "--retries",
+            "10",
             "--no-overwrites",
         ]
 
         try:
             result = subprocess.run(cmd, check=False)
             if result.returncode != 0:
-                log(f"WARNING: yt-dlp exited with code {result.returncode} for channel '{ch}'.")
+                log(
+                    f"WARNING: yt-dlp exited with code {result.returncode} for channel '{ch}'."
+                )
         except OSError as e:
             log(f"ERROR running yt-dlp for '{ch}': {e}")
             log(traceback.format_exc())
@@ -159,7 +166,9 @@ def run_once(channels):
             for vid in vids:
                 files = find_vod_files(ch_dir, vid)
                 if not files:
-                    log(f"WARNING: Could not locate downloaded file for VOD '{vid}' in {ch_dir}.")
+                    log(
+                        f"WARNING: Could not locate downloaded file for VOD '{vid}' in {ch_dir}."
+                    )
                     files = [(ch_dir / vid).resolve()]
                 for file_path in files:
                     rendered = display_path(file_path)
