@@ -87,6 +87,7 @@ pip install -r requirements-dev.txt
 This installs:
 - `mypy` for static type checking
 - `ruff` for linting and code formatting
+- `pytest` and `pytest-cov` for tests and Codecov reporting
 
 ### Running type checks
 
@@ -105,6 +106,9 @@ To automatically fix issues:
 ```bash
 ruff check --fix .
 ```
+
+Run `make test` to execute the tests and write `coverage.xml`. Codecov reports
+remain informational until coverage reaches 80%.
 
 ## Troubleshooting
 
