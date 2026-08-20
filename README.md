@@ -107,8 +107,9 @@ To automatically fix issues:
 ruff check --fix .
 ```
 
-Run `make test` to execute the tests and write `coverage.xml`. Codecov reports
-remain informational until coverage reaches 80%.
+Run `make test` to execute the tests and write `coverage.xml`. Codecov enforces
+an 80% coverage target for both the overall project and each patch; pull
+requests that drop below this threshold will fail the Codecov status checks.
 
 ## Troubleshooting
 
