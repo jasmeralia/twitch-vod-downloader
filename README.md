@@ -97,6 +97,34 @@ RUN_ONCE=1 uv run python -m twitch_vod_downloader
 `requirements.txt` remains the source of truth for the Docker image build; the
 two are kept in sync manually.
 
+### FFmpeg on TrueNAS native cron
+
+yt-dlp uses `ffmpeg` and `ffprobe` from `PATH` for post-processing, including
+repairing Twitch downloads that contain MPEG-TS data in an MP4 file or malformed
+AAC timestamps. These executables are separate from the Python dependencies in
+`uv.lock`; `uv sync` does not install them.
+
+On the TrueNAS host, install both executables in the Morgan user's persistent
+`~/.local/bin/` directory. This home directory is on the ZFS-backed data pool,
+so the binaries survive TrueNAS OS upgrades; do not install them into the
+replaceable base OS. Keep `ffmpeg` and `ffprobe` from the same build and preserve
+their executable permissions when updating them. Updating these host binaries
+is a separate operation from updating this repository or running `uv sync`.
+
+The native-cron job runs as Morgan and its `uv run` environment must include
+`~/.local/bin` in `PATH`. This was verified in the running downloader process on
+2026-09-28: its `PATH` included the persistent bin directory, and yt-dlp spawned
+`ffmpeg` from there to repair an affected VOD. An interactive shell's `PATH`
+may differ, so verify the actual cron process environment when diagnosing
+missing post-processing. After installing or updating either executable,
+confirm both versions with `~/.local/bin/ffmpeg -version` and
+`~/.local/bin/ffprobe -version`, and confirm that the native-cron process still
+has `~/.local/bin` in `PATH`.
+
+When updating the binaries, use the already selected source. Changing to a new
+binary provider requires source due diligence and explicit approval before the
+source is changed.
+
 ## Development
 
 ### Installing development dependencies
