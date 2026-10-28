@@ -1,6 +1,6 @@
 yt-dlp
 ruff
 mypy
-pydantic-settings>=2.16.0
+pydantic-settings>=2.16.1
 pytest
 pytest-cov
